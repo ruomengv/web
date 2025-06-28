@@ -2,21 +2,21 @@
   <div class="login-container">
     <!-- 动态方块背景 -->
     <div class="dynamic-squares">
-      <div 
-        v-for="(square, index) in squares" 
-        :key="index" 
+      <div
+        v-for="(square, index) in squares"
+        :key="index"
         class="square"
         :style="getSquareStyle(square)"
       ></div>
     </div>
-    
+
     <!-- 登录卡片 -->
     <div class="login-card">
       <div class="login-title">
         <h1>企业管理系统</h1>
         <p>Welcome back! Please login to your account</p>
       </div>
-      
+
       <el-form :model="form" class="login-form">
         <div class="input-group">
           <el-input
@@ -29,7 +29,7 @@
             </template>
           </el-input>
         </div>
-        
+
         <div class="input-group">
           <el-input
             v-model="form.password"
@@ -48,23 +48,23 @@
             </template>
           </el-input>
         </div>
-        
+
         <div class="remember">
           <el-checkbox v-model="rememberMe">记住我</el-checkbox>
         </div>
-        
-        <el-button 
-          type="success" 
-          @click="handleLogin" 
+
+        <el-button
+          type="success"
+          @click="handleLogin"
           class="login-btn"
           :disabled="!isFormValid"
         >
           登录
         </el-button>
-        
-        <el-button 
-          type="primary" 
-          @click="showRegister = true" 
+
+        <el-button
+          type="primary"
+          @click="showRegister = true"
           class="register-btn"
         >
           企业注册
@@ -76,28 +76,28 @@
     <el-dialog v-model="showRegister" title="企业注册" width="500px">
       <el-form :model="regForm" label-width="120px" :rules="regRules" ref="regFormRef">
         <el-form-item label="企业名称" prop="companyName">
-          <el-input v-model="regForm.companyName" />
+          <input v-model="regForm.companyName"/>
         </el-form-item>
         <el-form-item label="联系人" prop="contact">
-          <el-input v-model="regForm.contact" />
+          <input v-model="regForm.contact" />
         </el-form-item>
         <el-form-item label="营业执照" prop="license">
-          <el-input v-model="regForm.license" />
+          <input v-model="regForm.license" />
         </el-form-item>
         <el-form-item label="管理员账号" prop="username">
-          <el-input v-model="regForm.username" />
+          <input v-model="regForm.username" />
         </el-form-item>
         <el-form-item label="密码" prop="password">
-          <el-input v-model="regForm.password" type="password" show-password />
+          <input v-model="regForm.password" type="password" show-password />
         </el-form-item>
         <el-form-item label="确认密码" prop="confirmPassword">
-          <el-input v-model="regForm.confirmPassword" type="password" show-password />
+          <input v-model="regForm.confirmPassword" type="password" show-password />
         </el-form-item>
         <el-form-item label="验证码" prop="captcha">
           <div class="captcha-container">
-            <el-input v-model="regForm.captcha" placeholder="请输入验证码" />
-            <el-button 
-              type="primary" 
+            <input v-model="regForm.captcha" placeholder="请输入验证码" />
+            <el-button
+              type="primary"
               class="captcha-btn"
               @click="getCaptcha"
               :disabled="captchaCooldown > 0"
