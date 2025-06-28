@@ -1,0 +1,41 @@
+package com.eduneu.web1.entity;
+
+import java.util.Date;
+
+public class News {
+    private Long id;
+    private String title;
+    private String cover;
+    private String summary;
+    private String content;
+    private String author;
+    private Integer status; // 0-待审核 1-已发布 2-驳回
+    private String rejectReason; // 驳回原因
+    private Long creatorId;
+    private Date createTime;
+    private Date updateTime;
+
+    // Getters and Setters
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public String getTitle() { return title; }
+    public void setTitle(String title) { this.title = title; }
+    public String getCover() { return cover; }
+    public void setCover(String cover) { this.cover = cover; }
+    public String getSummary() { return summary; }
+    public void setSummary(String summary) { this.summary = summary; }
+    public String getContent() { return content; }
+    public void setContent(String content) { this.content = content; }
+    public String getAuthor() { return author; }
+    public void setAuthor(String author) { this.author = author; }
+    public Integer getStatus() { return status; }
+    public void setStatus(Integer status) { this.status = status; }
+    public String getRejectReason() { return rejectReason; }
+    public void setRejectReason(String rejectReason) { this.rejectReason = rejectReason; }
+    public Long getCreatorId() { return creatorId; }
+    public void setCreatorId(Long creatorId) { this.creatorId = creatorId; }
+    public Date getCreateTime() { return createTime; }
+    public void setCreateTime(Date createTime) { this.createTime = createTime; }
+    public Date getUpdateTime() { return updateTime; }
+    public void setUpdateTime(Date updateTime) { this.updateTime = updateTime; }
+}
