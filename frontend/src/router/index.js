@@ -51,8 +51,6 @@ const routes = [
         meta: { requiresAuth: true }
       },
       {
-        // --- 修改部分开始 ---
-        // 将所有会议路由整合到这里
         path: 'meeting',
         // 当访问 /main/meeting 时，自动跳转到列表页
         redirect: '/main/meeting/list',

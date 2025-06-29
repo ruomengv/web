@@ -2,6 +2,7 @@ package com.eduneu.web1.service;
 
 import com.eduneu.web1.entity.Meeting;
 import com.eduneu.web1.mapper.MeetingMapper;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -65,7 +66,19 @@ public class MeetingService {
             throw new IllegalArgumentException("状态不能为空");
         }
     }
+    @Transactional
+    public Meeting approveMeeting(Long meetingId) {
+        Meeting meeting = meetingMapper.findById(meetingId)
+                .orElseThrow(() -> new RuntimeException("找不到ID为 " + meetingId + " 的会议"));
 
+        if (!"planned".equalsIgnoreCase(meeting.getStatus())) {
+            throw new IllegalStateException("只有 'planned' 状态的会议才能被审批");
+        }
+
+        meeting.setStatus("scheduled");
+        meetingMapper.update(meeting);
+        return meeting;
+    }
     public List<Meeting> searchMeetings(String name, String organizer, LocalDateTime startDate, LocalDateTime endDate) {
         return meetingMapper.searchMeetings(name, organizer, startDate, endDate);
     }

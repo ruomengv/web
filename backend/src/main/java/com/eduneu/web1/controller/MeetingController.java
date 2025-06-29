@@ -6,6 +6,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.eduneu.web1.entity.User;
+import jakarta.servlet.http.HttpSession;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -108,6 +111,37 @@ public class MeetingController {
             return new ResponseEntity<>("An internal server error occurred.", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+    /**
+     * 审批会议。
+     * @param payload 包含会议ID: {"id": 123}
+     * @param session Spring会自动注入当前的HttpSession
+     * @return 更新后的会议
+     */
+    @PostMapping("/approve")
+    public ResponseEntity<?> approveMeeting(@RequestBody Map<String, Long> payload, HttpSession session) {
+        try {
+            // 在方法开头调用私有的权限检查方法
+            checkAdmin(session);
+
+            // --- 权限检查通过后，才执行业务逻辑 ---
+            Long id = payload.get("id");
+            if (id == null) {
+                return ResponseEntity.badRequest().body("缺少会议ID");
+            }
+
+            Meeting approvedMeeting = meetingService.approveMeeting(id);
+            return ResponseEntity.ok(approvedMeeting);
+
+        } catch (ResponseStatusException e) {
+            // 捕获权限异常，返回相应的状态码和信息
+            return ResponseEntity.status(e.getStatusCode()).body(e.getReason());
+        } catch (RuntimeException e) {
+            // 捕获其他业务异常
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+
 
     //用于解析日期字符串
     private LocalDateTime parseToLocalDateTime(String dateTimeStr, boolean isStart) {
@@ -121,4 +155,19 @@ public class MeetingController {
             return isStart ? date.atStartOfDay() : date.atTime(LocalTime.MAX);
         }
     }
+
+    private void checkAdmin(HttpSession session) {
+        Object userObj = session.getAttribute("currentUser");
+        if (userObj == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "用户未登录，无权访问");
+        }
+        if (userObj instanceof User user) {
+            if (user.getRole() != 0) { // 假设 role 0 是管理员
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "无管理员权限");
+            }
+        } else {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "会话数据异常");
+        }
+    }
+
 }
