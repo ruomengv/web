@@ -72,6 +72,13 @@ const routes = [
             name: 'EditMeeting',
             component: EditMeeting,
             meta: { requiresAuth: true }
+          },
+          {
+            path: 'details/:id', // 使用 :id 作为动态参数
+            name: 'MeetingDetails',
+            // 懒加载组件
+            component: () => import('@/views/meeting-management/MeetingDetails.vue'),
+            meta: { requiresAuth: true }
           }
         ]
         // --- 修改部分结束 ---

@@ -25,7 +25,15 @@
 
     <el-table :data="meetings" style="width: 100%" v-loading="loading">
       <el-table-column prop="id" label="会议ID" width="80"></el-table-column>
-      <el-table-column prop="name" label="会议名称" show-overflow-tooltip></el-table-column>
+
+      <el-table-column label="会议名称" prop="name" show-overflow-tooltip>
+        <template #default="scope">
+          <el-button type="primary" link @click="goToDetails(scope.row.id)">
+            {{ scope.row.name }}
+          </el-button>
+        </template>
+      </el-table-column>
+
       <el-table-column prop="organizer" label="组织者"></el-table-column>
       <el-table-column prop="startTime" label="开始时间" :formatter="formatTableDateTime"></el-table-column>
       <el-table-column prop="endTime" label="结束时间" :formatter="formatTableDateTime"></el-table-column>
@@ -65,22 +73,14 @@ export default {
     };
   },
   computed: {
-    /**
-     * 【新增】计算属性，用于判断当前用户是否为管理员
-     */
     isAdmin() {
-      // 从 localStorage 中读取 'user' 信息
       const userJson = localStorage.getItem('user');
       if (!userJson) return false;
       const user = JSON.parse(userJson);
-      // 检查 role 是否为 0 (管理员)
       return user && user.role === 0;
     }
   },
   methods: {
-    /**
-     * 获取会议列表（支持搜索）
-     */
     async fetchMeetings(params = {}) {
       this.loading = true;
       try {
@@ -95,9 +95,6 @@ export default {
         this.loading = false;
       }
     },
-    /**
-     * 处理搜索
-     */
     handleSearch() {
       const params = {
         ...this.searchParams,
@@ -113,18 +110,12 @@ export default {
       );
       this.fetchMeetings(finalParams);
     },
-    /**
-     * 重置搜索条件
-     */
     resetSearch() {
       this.searchParams.name = '';
       this.searchParams.organizer = '';
       this.searchDateRange = [];
       this.fetchMeetings();
     },
-    /**
-     * 【新增】处理审批逻辑的方法
-     */
     async handleApprove(id) {
       this.$confirm('是否确认通过此会议审批？(状态将从 planned 变为 scheduled)', '审批确认', {
         confirmButtonText: '确定',
@@ -143,12 +134,9 @@ export default {
           this.loading = false;
         }
       }).catch(() => {
-        this.$message.info('已取消操作');
+        this.message.info('已取消操作');
       });
     },
-    /**
-     * 确认删除
-     */
     confirmDelete(id) {
       this.$confirm('是否确认删除该会议?', '系统提示', {
         confirmButtonText: '确定',
@@ -160,12 +148,9 @@ export default {
         this.$message.info('已取消删除');
       });
     },
-    /**
-     * 执行删除
-     */
     async deleteMeeting(id) {
       try {
-        await api.deleteMeeting(id);
+        await api.deleteMeeting({ id });
         this.$message.success('删除成功');
         await this.fetchMeetings();
       } catch (error) {
@@ -173,18 +158,18 @@ export default {
         this.$message.error(error.message || '删除失败');
       }
     },
-    /**
-     * 路由跳转
-     */
     goToAddMeeting() {
       this.$router.push({ name: 'AddMeeting' });
+    },
+    /**
+     * 【新增】跳转到会议详情页的方法
+     */
+    goToDetails(id) {
+      this.$router.push({ name: 'MeetingDetails', params: { id } });
     },
     editMeeting(id) {
       this.$router.push({ name: 'EditMeeting', params: { id } });
     },
-    /**
-     * 辅助函数：格式化日期以匹配后端API
-     */
     formatDateTimeForApi(date) {
       if (!date) return null;
       const pad = (num) => num.toString().padStart(2, '0');
@@ -196,9 +181,6 @@ export default {
       const seconds = pad(date.getSeconds());
       return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
     },
-    /**
-     * 辅助函数：格式化日期用于表格显示
-     */
     formatTableDateTime(row, column, cellValue) {
       if (!cellValue) return '';
       return cellValue.replace('T', ' ').substring(0, 16);
@@ -219,7 +201,7 @@ export default {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
-  flex-wrap: wrap; /* 适应小屏幕换行 */
+  flex-wrap: wrap;
 }
 .search-group {
   display: flex;
@@ -230,7 +212,7 @@ export default {
   width: 200px;
 }
 .action-group {
-  margin-left: auto; /* 将按钮推到最右边 */
-  padding-left: 20px; /* 给按钮一些左边距 */
+  margin-left: auto;
+  padding-left: 20px;
 }
 </style>
