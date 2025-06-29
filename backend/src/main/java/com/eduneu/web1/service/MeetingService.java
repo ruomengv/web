@@ -1,7 +1,8 @@
 package com.eduneu.web1.service;
 
-import com.eduneu.web1.entity.Meeting ;
+import com.eduneu.web1.entity.Meeting;
 import com.eduneu.web1.mapper.MeetingMapper;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -11,64 +12,74 @@ import java.util.Optional;
 
 @Service
 public class MeetingService {
+
     @Autowired
-    private MeetingMapper meetingRepository;
+    private MeetingMapper meetingMapper;
 
     public List<Meeting> getAllMeetings() {
-        return meetingRepository.findAll();
+        return meetingMapper.findAll();
     }
 
     public Optional<Meeting> getMeetingById(Long id) {
-        return meetingRepository.findById(id);
+        return meetingMapper.findById(id);
     }
 
     public Meeting createMeeting(Meeting meeting) {
         validateMeeting(meeting);
-        return meetingRepository.save(meeting);
+        meetingMapper.insert(meeting);
+        return meeting;
     }
 
     public Meeting updateMeeting(Long id, Meeting meetingDetails) {
         validateMeeting(meetingDetails);
-        Meeting meeting = meetingRepository.findById(id)
+        // 确认会议存在
+        meetingMapper.findById(id)
                 .orElseThrow(() -> new RuntimeException("Meeting not found with id " + id));
-        meeting.setName(meetingDetails.getName());
-        meeting.setOrganizer(meetingDetails.getOrganizer());
-        meeting.setStartTime(meetingDetails.getStartTime());
-        meeting.setEndTime(meetingDetails.getEndTime());
-        meeting.setContent(meetingDetails.getContent());
-        meeting.setStatus(meetingDetails.getStatus());
-        return meetingRepository.save(meeting);
+        meetingDetails.setId(id);
+        meetingMapper.update(meetingDetails);
+        return meetingDetails;
     }
 
     public void deleteMeeting(Long id) {
-        Meeting meeting = meetingRepository.findById(id)
+        meetingMapper.findById(id)
                 .orElseThrow(() -> new RuntimeException("Meeting not found with id " + id));
-        meetingRepository.delete(meeting);
+        meetingMapper.deleteById(id);
     }
 
     private void validateMeeting(Meeting meeting) {
         if (meeting.getName() == null || meeting.getName().isEmpty()) {
-            throw new RuntimeException("会议名称不能为空");
+            throw new IllegalArgumentException("会议名称不能为空");
         }
         if (meeting.getOrganizer() == null || meeting.getOrganizer().isEmpty()) {
-            throw new RuntimeException("组织者不能为空");
+            throw new IllegalArgumentException("组织者不能为空");
         }
         if (meeting.getStartTime() == null) {
-            throw new RuntimeException("开始时间不能为空");
+            throw new IllegalArgumentException("开始时间不能为空");
         }
         if (meeting.getEndTime() == null) {
-            throw new RuntimeException("结束时间不能为空");
+            throw new IllegalArgumentException("结束时间不能为空");
+        }
+        if (meeting.getStartTime().isAfter(meeting.getEndTime())) {
+            throw new IllegalArgumentException("开始时间不能晚于结束时间");
         }
         if (meeting.getStatus() == null || meeting.getStatus().isEmpty()) {
-            throw new RuntimeException("状态不能为空");
+            throw new IllegalArgumentException("状态不能为空");
         }
     }
+    @Transactional
+    public Meeting approveMeeting(Long meetingId) {
+        Meeting meeting = meetingMapper.findById(meetingId)
+                .orElseThrow(() -> new RuntimeException("找不到ID为 " + meetingId + " 的会议"));
 
-
-        public List<Meeting> searchMeetings(String name, String organizer, LocalDateTime startTime) {
-            // 根据条件搜索会议
-            return meetingRepository.searchMeetings(name, organizer, startTime);
+        if (!"planned".equalsIgnoreCase(meeting.getStatus())) {
+            throw new IllegalStateException("只有 'planned' 状态的会议才能被审批");
         }
+
+        meeting.setStatus("scheduled");
+        meetingMapper.update(meeting);
+        return meeting;
     }
-
-
+    public List<Meeting> searchMeetings(String name, String organizer, LocalDateTime startDate, LocalDateTime endDate) {
+        return meetingMapper.searchMeetings(name, organizer, startDate, endDate);
+    }
+}

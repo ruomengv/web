@@ -6,13 +6,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.eduneu.web1.entity.User;
+import jakarta.servlet.http.HttpSession;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
-
 
 @RestController
 @RequestMapping("api/meetings")
@@ -21,7 +26,8 @@ public class MeetingController {
     @Autowired
     private MeetingService meetingService;
 
-    private final DateTimeFormatter formatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
+    // 用于解析带时区偏移的输入格式
+    private final DateTimeFormatter offsetFormatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
 
     @GetMapping("/listAll")
     public ResponseEntity<List<Meeting>> listAll() {
@@ -30,124 +36,138 @@ public class MeetingController {
     }
 
     @PostMapping("/addMeeting")
-    public ResponseEntity<Meeting> add(@RequestBody Map<String, String> credentials) {
+    public ResponseEntity<?> add(@RequestBody Meeting meeting) {
         try {
-            Meeting meeting = new Meeting();
-            if (credentials.get("id") != null) {
-                meeting.setId(Long.parseLong(credentials.get("id")));
-            }
-            meeting.setName(credentials.get("name"));
-            meeting.setOrganizer(credentials.get("organizer"));
-
-            // Parse startTime and endTime to OffsetDateTime, then convert to LocalDateTime
-            OffsetDateTime startTime = OffsetDateTime.parse(credentials.get("startTime"), formatter);
-            OffsetDateTime endTime = OffsetDateTime.parse(credentials.get("endTime"), formatter);
-            meeting.setStartTime(startTime.toLocalDateTime());
-            meeting.setEndTime(endTime.toLocalDateTime());
-
-            meeting.setContent(credentials.get("content"));
-            meeting.setStatus(credentials.get("status"));
-
-            Meeting meetingAdd = meetingService.createMeeting(meeting);
-            return new ResponseEntity<>(meetingAdd, HttpStatus.CREATED);
+            Meeting createdMeeting = meetingService.createMeeting(meeting);
+            return new ResponseEntity<>(createdMeeting, HttpStatus.CREATED);
+        } catch (IllegalArgumentException e) {
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>("An unexpected error occurred.", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
     @PostMapping("/deleteMeeting")
-    public ResponseEntity<String> delete(@RequestBody Map<String, String> credentials) {
+    public ResponseEntity<String> delete(@RequestBody Map<String, Long> payload) {
         try {
-            meetingService.deleteMeeting(Long.valueOf(credentials.get("id")));
+            Long id = payload.get("id");
+            if (id == null) {
+                return new ResponseEntity<>("ID cannot be null.", HttpStatus.BAD_REQUEST);
+            }
+            meetingService.deleteMeeting(id);
             return new ResponseEntity<>("success", HttpStatus.OK);
-        } catch (Exception e) {
-            return new ResponseEntity<>("failure", HttpStatus.BAD_REQUEST);
+        } catch (RuntimeException e) {
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
         }
     }
 
-
     @PostMapping("/updateMeeting")
-    public ResponseEntity<Meeting> update(@RequestBody Map<String, String> credentials) {
+    public ResponseEntity<?> update(@RequestBody Meeting meeting) {
         try {
-            // Validate and parse id
-            String idStr = credentials.get("id");
-            if (idStr == null || idStr.isEmpty()) {
-                throw new IllegalArgumentException("ID cannot be null or empty");
+            if (meeting.getId() == null) {
+                return new ResponseEntity<>("ID is required for update.", HttpStatus.BAD_REQUEST);
             }
-            Long id = Long.parseLong(idStr);
-
-            // Validate and parse other fields
-            String name = credentials.get("name");
-            if (name == null || name.isEmpty()) {
-                throw new IllegalArgumentException("Name cannot be null or empty");
-            }
-
-            String organizer = credentials.get("organizer");
-            if (organizer == null || organizer.isEmpty()) {
-                throw new IllegalArgumentException("Organizer cannot be null or empty");
-            }
-
-            String startTimeStr = credentials.get("startTime");
-            if (startTimeStr == null || startTimeStr.isEmpty()) {
-                throw new IllegalArgumentException("Start time cannot be null or empty");
-            }
-            LocalDateTime startTime = LocalDateTime.parse(startTimeStr, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
-
-            String endTimeStr = credentials.get("endTime");
-            if (endTimeStr == null || endTimeStr.isEmpty()) {
-                throw new IllegalArgumentException("End time cannot be null or empty");
-            }
-            LocalDateTime endTime = LocalDateTime.parse(endTimeStr, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
-
-            String content = credentials.get("content");
-            if (content == null || content.isEmpty()) {
-                throw new IllegalArgumentException("Content cannot be null or empty");
-            }
-
-            String status = credentials.get("status");
-            if (status == null || status.isEmpty()) {
-                throw new IllegalArgumentException("Status cannot be null or empty");
-            }
-
-            // Create and update meeting
-            Meeting meeting = new Meeting();
-            meeting.setId(id);
-            meeting.setName(name);
-            meeting.setOrganizer(organizer);
-            meeting.setStartTime(startTime);
-            meeting.setEndTime(endTime);
-            meeting.setContent(content);
-            meeting.setStatus(status);
-
             Meeting updatedMeeting = meetingService.updateMeeting(meeting.getId(), meeting);
             return new ResponseEntity<>(updatedMeeting, HttpStatus.OK);
         } catch (IllegalArgumentException e) {
-            return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
-        } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (RuntimeException e) {
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
         }
     }
 
     @PostMapping("/getMeetingById")
-    public ResponseEntity<Meeting> getById(@RequestBody Map<String, String> credentials) {
-        try {
-            Meeting meeting = meetingService.getMeetingById(Long.valueOf(credentials.get("id"))).orElse(null);
-            return new ResponseEntity<>(meeting, HttpStatus.OK);
-        } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
+    public ResponseEntity<?> getById(@RequestBody Map<String, Long> payload) {
+        Long id = payload.get("id");
+        if (id == null) {
+            return new ResponseEntity<>("ID cannot be null.", HttpStatus.BAD_REQUEST);
         }
+        return meetingService.getMeetingById(id)
+                .<ResponseEntity<?>>map(meeting -> new ResponseEntity<>(meeting, HttpStatus.OK))
+                .orElse(new ResponseEntity<>("Meeting not found.", HttpStatus.NOT_FOUND));
     }
 
     @PostMapping("/searchMeetings")
-    public ResponseEntity<List<Meeting>> searchMeetings(@RequestBody Map<String, String> params) {
-        String name = params.get("name");
-        String organizer = params.get("organizer");
-        OffsetDateTime startTimeStr = OffsetDateTime.parse(params.get("startTime"), formatter);
-        LocalDateTime startTime1 = (startTimeStr.toLocalDateTime());
-        //LocalDateTime startTime = startTimeStr != null ? LocalDateTime.parse(startTimeStr) : null;
+    public ResponseEntity<?> searchMeetings(@RequestBody Map<String, String> params) {
+        try {
+            String name = params.get("name");
+            String organizer = params.get("organizer");
+            String startDateStr = params.get("searchStartDate");
+            String endDateStr = params.get("searchEndDate");
 
-        List<Meeting> meetings = meetingService.searchMeetings(name, organizer, startTime1);
-        return new ResponseEntity<>(meetings, HttpStatus.OK);
+            LocalDateTime searchStartDateTime = parseToLocalDateTime(startDateStr, true);
+            LocalDateTime searchEndDateTime = parseToLocalDateTime(endDateStr, false);
+
+            if (searchStartDateTime != null && searchEndDateTime == null && startDateStr.length() <= 10) {
+                searchEndDateTime = searchStartDateTime.with(LocalTime.MAX);
+            }
+
+            List<Meeting> meetings = meetingService.searchMeetings(name, organizer, searchStartDateTime, searchEndDateTime);
+            return new ResponseEntity<>(meetings, HttpStatus.OK);
+
+        } catch (DateTimeParseException e) {
+            return new ResponseEntity<>("Invalid date format. Use yyyy-MM-dd or yyyy-MM-dd'T'HH:mm:ss", HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            return new ResponseEntity<>("An internal server error occurred.", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    /**
+     * 审批会议。
+     * @param payload 包含会议ID: {"id": 123}
+     * @param session Spring会自动注入当前的HttpSession
+     * @return 更新后的会议
+     */
+    @PostMapping("/approve")
+    public ResponseEntity<?> approveMeeting(@RequestBody Map<String, Long> payload, HttpSession session) {
+        try {
+            // 在方法开头调用私有的权限检查方法
+            checkAdmin(session);
+
+            // --- 权限检查通过后，才执行业务逻辑 ---
+            Long id = payload.get("id");
+            if (id == null) {
+                return ResponseEntity.badRequest().body("缺少会议ID");
+            }
+
+            Meeting approvedMeeting = meetingService.approveMeeting(id);
+            return ResponseEntity.ok(approvedMeeting);
+
+        } catch (ResponseStatusException e) {
+            // 捕获权限异常，返回相应的状态码和信息
+            return ResponseEntity.status(e.getStatusCode()).body(e.getReason());
+        } catch (RuntimeException e) {
+            // 捕获其他业务异常
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+
+
+    //用于解析日期字符串
+    private LocalDateTime parseToLocalDateTime(String dateTimeStr, boolean isStart) {
+        if (dateTimeStr == null || dateTimeStr.isEmpty()) {
+            return null;
+        }
+        try {
+            return LocalDateTime.parse(dateTimeStr, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+        } catch (DateTimeParseException e) {
+            LocalDate date = LocalDate.parse(dateTimeStr, DateTimeFormatter.ISO_LOCAL_DATE);
+            return isStart ? date.atStartOfDay() : date.atTime(LocalTime.MAX);
+        }
+    }
+
+    private void checkAdmin(HttpSession session) {
+        Object userObj = session.getAttribute("currentUser");
+        if (userObj == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "用户未登录，无权访问");
+        }
+        if (userObj instanceof User user) {
+            if (user.getRole() != 0) { // 假设 role 0 是管理员
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "无管理员权限");
+            }
+        } else {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "会话数据异常");
+        }
     }
 
 }

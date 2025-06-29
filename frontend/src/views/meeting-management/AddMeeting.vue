@@ -23,57 +23,37 @@
 </template>
 
 <script>
-// 导入你的 api 文件
 import api from '@/services/api.js';
 
 export default {
-  name: 'EditMeeting',
+  name: 'AddMeeting',
   data() {
     return {
       meeting: {
-        id: '',
         name: '',
         organizer: '',
         startTime: '',
         endTime: '',
         content: '',
-        status: ''
+        status: 'planned'
       }
     };
   },
   methods: {
-    // 获取当前会议的详细信息
-    async fetchMeetingData(id) {
-      try {
-        const data = await api.getMeetingById(id);
-        this.meeting = data;
-      } catch (error) {
-        console.error('Failed to fetch meeting data:', error);
-        this.$message.error('获取会议详情失败');
-      }
-    },
-    // 提交更新
     async submitForm() {
       try {
         // 直接调用 api
-        await api.updateMeeting(this.meeting.id, this.meeting);
-        this.$message.success('会议更新成功');
+        await api.createMeeting(this.meeting);
+        this.$message.success('会议创建成功');
         // 跳转回列表页
         this.$router.push({ name: 'MeetingList' });
       } catch (error) {
-        console.error('Failed to update meeting:', error);
-        this.$message.error('更新会议失败');
+        console.error('Failed to create meeting:', error);
+        this.$message.error('创建会议失败');
       }
     },
     cancel() {
       this.$router.push({ name: 'MeetingList' });
-    }
-  },
-  mounted() {
-    // 从路由参数中获取 id
-    const meetingId = this.$route.params.id;
-    if (meetingId) {
-      this.fetchMeetingData(meetingId);
     }
   }
 };

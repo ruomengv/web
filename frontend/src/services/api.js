@@ -164,6 +164,9 @@ export default {
   searchMeetings(params) {
     return api.post('/meetings/searchMeetings', params);
   },
+  approveMeeting(id) {
+    return api.post('/meetings/approve', { id });
+  },
 
   // 文件上传
   uploadFile(file) {
