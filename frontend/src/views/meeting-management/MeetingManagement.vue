@@ -30,8 +30,16 @@
       <el-table-column prop="startTime" label="开始时间" :formatter="formatTableDateTime"></el-table-column>
       <el-table-column prop="endTime" label="结束时间" :formatter="formatTableDateTime"></el-table-column>
       <el-table-column prop="status" label="状态"></el-table-column>
-      <el-table-column label="操作" width="180">
+      <el-table-column label="操作" width="220">
         <template #default="scope">
+          <el-button
+              v-if="isAdmin && scope.row.status === 'planned'"
+              @click="handleApprove(scope.row.id)"
+              type="success"
+              link>
+            审批通过
+          </el-button>
+
           <el-button @click="editMeeting(scope.row.id)" type="primary" link>修改</el-button>
           <el-button @click="confirmDelete(scope.row.id)" type="danger" link>删除</el-button>
         </template>
@@ -48,38 +56,51 @@ export default {
   data() {
     return {
       meetings: [],
-      loading: false, // 【新增】加载状态，提升用户体验
-      // 【修改】使用一个对象来聚合搜索参数
+      loading: false,
       searchParams: {
         name: '',
         organizer: ''
       },
-      // 【修改】用于 el-date-picker 的 v-model
       searchDateRange: [],
     };
   },
+  computed: {
+    /**
+     * 【新增】计算属性，用于判断当前用户是否为管理员
+     */
+    isAdmin() {
+      // 从 localStorage 中读取 'user' 信息
+      const userJson = localStorage.getItem('user');
+      if (!userJson) return false;
+      const user = JSON.parse(userJson);
+      // 检查 role 是否为 0 (管理员)
+      return user && user.role === 0;
+    }
+  },
   methods: {
-    // 【优化】将列表获取逻辑统一，方便复用
+    /**
+     * 获取会议列表（支持搜索）
+     */
     async fetchMeetings(params = {}) {
       this.loading = true;
       try {
-        // 如果有查询参数，则调用搜索接口，否则调用获取全部列表的接口
         const response = Object.keys(params).length > 0
             ? await api.searchMeetings(params)
             : await api.getAllMeetings();
         this.meetings = response;
       } catch (error) {
         console.error('Failed to fetch meetings:', error);
-        this.$message.error('获取会议列表失败');
+        this.$message.error(error.message || '获取会议列表失败');
       } finally {
         this.loading = false;
       }
     },
+    /**
+     * 处理搜索
+     */
     handleSearch() {
-      // 准备最终发送到后端的参数
       const params = {
         ...this.searchParams,
-        // 【修改】处理日期范围
         searchStartDate: this.searchDateRange && this.searchDateRange[0]
             ? this.formatDateTimeForApi(this.searchDateRange[0])
             : null,
@@ -87,32 +108,47 @@ export default {
             ? this.formatDateTimeForApi(this.searchDateRange[1])
             : null
       };
-
-      // 过滤掉值为 null 或空字符串的参数
       const finalParams = Object.fromEntries(
           Object.entries(params).filter(([_, v]) => v != null && v !== '')
       );
-
       this.fetchMeetings(finalParams);
     },
-    // 【新增】重置搜索条件
+    /**
+     * 重置搜索条件
+     */
     resetSearch() {
       this.searchParams.name = '';
       this.searchParams.organizer = '';
       this.searchDateRange = [];
-      this.fetchMeetings(); // 重置后加载全部数据
+      this.fetchMeetings();
     },
-    async deleteMeeting(id) {
-      try {
-        // 【修改】后端的 deleteMeeting 接口需要一个 JSON 对象作为 body
-        await api.deleteMeeting({ id });
-        this.$message.success('删除成功');
-        this.fetchMeetings(); // 重新加载数据
-      } catch (error) {
-        console.error('Failed to delete meeting:', error);
-        this.$message.error('删除失败');
-      }
+    /**
+     * 【新增】处理审批逻辑的方法
+     */
+    async handleApprove(id) {
+      this.$confirm('是否确认通过此会议审批？(状态将从 planned 变为 scheduled)', '审批确认', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(async () => {
+        try {
+          this.loading = true;
+          await api.approveMeeting(id);
+          this.$message.success('审批成功！');
+          await this.fetchMeetings();
+        } catch (error) {
+          console.error('Failed to approve meeting:', error);
+          this.$message.error(error.message || '审批失败');
+        } finally {
+          this.loading = false;
+        }
+      }).catch(() => {
+        this.$message.info('已取消操作');
+      });
     },
+    /**
+     * 确认删除
+     */
     confirmDelete(id) {
       this.$confirm('是否确认删除该会议?', '系统提示', {
         confirmButtonText: '确定',
@@ -124,13 +160,31 @@ export default {
         this.$message.info('已取消删除');
       });
     },
+    /**
+     * 执行删除
+     */
+    async deleteMeeting(id) {
+      try {
+        await api.deleteMeeting(id);
+        this.$message.success('删除成功');
+        await this.fetchMeetings();
+      } catch (error) {
+        console.error('Failed to delete meeting:', error);
+        this.$message.error(error.message || '删除失败');
+      }
+    },
+    /**
+     * 路由跳转
+     */
     goToAddMeeting() {
       this.$router.push({ name: 'AddMeeting' });
     },
     editMeeting(id) {
       this.$router.push({ name: 'EditMeeting', params: { id } });
     },
-    //辅助函数，格式化日期以匹配后端 API 要求 (YYYY-MM-DDTHH:mm:ss)
+    /**
+     * 辅助函数：格式化日期以匹配后端API
+     */
     formatDateTimeForApi(date) {
       if (!date) return null;
       const pad = (num) => num.toString().padStart(2, '0');
@@ -142,10 +196,11 @@ export default {
       const seconds = pad(date.getSeconds());
       return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
     },
-    //辅助函数，用于在表格中格式化日期显示
+    /**
+     * 辅助函数：格式化日期用于表格显示
+     */
     formatTableDateTime(row, column, cellValue) {
       if (!cellValue) return '';
-      // 只取 YYYY-MM-DD HH:mm 部分
       return cellValue.replace('T', ' ').substring(0, 16);
     }
   },
@@ -162,18 +217,20 @@ export default {
 .header {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   margin-bottom: 20px;
+  flex-wrap: wrap; /* 适应小屏幕换行 */
 }
 .search-group {
   display: flex;
-  gap: 10px; /* 使用 gap 属性来创建间距 */
+  gap: 10px;
+  flex-wrap: wrap;
 }
 .search-input {
   width: 200px;
 }
 .action-group {
-}
-.delete-button {
-  color: #F56C6C;
+  margin-left: auto; /* 将按钮推到最右边 */
+  padding-left: 20px; /* 给按钮一些左边距 */
 }
 </style>
