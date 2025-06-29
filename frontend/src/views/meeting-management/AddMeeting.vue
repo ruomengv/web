@@ -35,7 +35,7 @@ export default {
         startTime: '',
         endTime: '',
         content: '',
-        status: 'Scheduled'
+        status: 'planned'
       }
     };
   },
