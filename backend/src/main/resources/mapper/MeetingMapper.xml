@@ -12,6 +12,7 @@
         <result column="end_time" property="endTime"/>
         <result column="content" property="content"/>
         <result column="status" property="status"/>
+        <result column="category" property="category"/>
     </resultMap>
 
     <select id="findAll" resultMap="BaseResultMap">
@@ -23,21 +24,22 @@
     </select>
 
     <insert id="insert" parameterType="com.eduneu.web1.entity.Meeting" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO meeting (name, organizer, start_time, end_time, content, status)
-        VALUES (#{name}, #{organizer}, #{startTime}, #{endTime}, #{content}, #{status})
+        INSERT INTO meeting (name, organizer, start_time, end_time, content, status, category)
+        VALUES (#{name}, #{organizer}, #{startTime}, #{endTime}, #{content}, #{status}, #{category})
     </insert>
 
     <update id="update" parameterType="com.eduneu.web1.entity.Meeting">
         UPDATE meeting
-        SET
-            name = #{name},
-            organizer = #{organizer},
-            start_time = #{startTime},
-            end_time = #{endTime},
-            content = #{content},
-            status = #{status}
-        WHERE
-            id = #{id}
+        <set>
+            <if test="name != null">name = #{name},</if>
+            <if test="organizer != null">organizer = #{organizer},</if>
+            <if test="startTime != null">start_time = #{startTime},</if>
+            <if test="endTime != null">end_time = #{endTime},</if>
+            <if test="content != null">content = #{content},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="category != null">category = #{category},</if>
+        </set>
+        WHERE id = #{id}
     </update>
 
     <delete id="deleteById">
@@ -52,6 +54,9 @@
             </if>
             <if test="organizer != null and organizer != ''">
                 AND organizer LIKE CONCAT('%', #{organizer}, '%')
+            </if>
+            <if test="category != null and category != ''">
+                AND category = #{category}
             </if>
             <if test="startDate != null and endDate != null">
                 AND start_time &lt;= #{endDate} AND end_time &gt;= #{startDate}
