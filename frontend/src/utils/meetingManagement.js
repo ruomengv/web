@@ -1,100 +1,116 @@
-import api from '@/services/api.js'; // <-- 请确保这里的路径是正确的
+import api from '@/services/api.js'; // 請確保 api 服務的路徑正確
 
 const state = {
     meetings: [],
-    currentMeeting: null
+    currentMeeting: null,
+    loading: false
 };
 
 const mutations = {
     setMeetings(state, meetings) {
-        state.meetings = meetings;
+        state.meetings = Array.isArray(meetings) ? meetings : [];
     },
     setCurrentMeeting(state, meeting) {
         state.currentMeeting = meeting;
+    },
+    setLoading(state, isLoading) {
+        state.loading = isLoading;
     }
 };
 
 const actions = {
-    async fetchMeetings({ commit }) {
+    /**
+     * 通用的獲取會議列表動作 (包含搜索功能)
+     */
+    async fetchMeetings({ commit }, params = {}) {
+        commit('setLoading', true);
         try {
-            // 直接调用 api 模块的方法
-            const meetingsData = await api.getAllMeetings();
-            commit('setMeetings', meetingsData);
+            // 【關鍵修正】API 返回的直接就是會議陣列
+            const meetingsArray = await api.searchMeetings(params);
+            // 直接將獲取到的陣列 commit 到 state
+            commit('setMeetings', meetingsArray);
         } catch (error) {
-            // 4. 错误已被 api.js 拦截器打印，这里可以处理UI反馈，例如弹窗提示
             console.error('Failed to fetch meetings in Vuex:', error.message);
+            commit('setMeetings', []);
+        } finally {
+            commit('setLoading', false);
         }
     },
-    async searchMeetings({ commit }, params) {
+
+    /**
+     * 根據 ID 獲取單一會議詳情
+     */
+    async fetchMeetingById({ commit }, meetingId) {
+        commit('setLoading', true);
         try {
-            // 确保传递给API的数据是干净的
-            const formattedParams = {
-                name: params.name,
-                organizer: params.organizer,
-                startTime: params.startTime,
-            };
-            const meetingsData = await api.searchMeetings(formattedParams);
-            commit('setMeetings', meetingsData);
+            // 【關鍵修正】假設 getMeetingById 同樣是直接返回會議物件
+            const meetingObject = await api.getMeetingById({ id: meetingId });
+            commit('setCurrentMeeting', meetingObject);
         } catch (error) {
-            console.error('Failed to search meetings in Vuex:', error.message);
+            console.error(`Failed to fetch meeting with id ${meetingId} in Vuex:`, error.message);
+            commit('setCurrentMeeting', null);
+        } finally {
+            commit('setLoading', false);
         }
     },
-    async fetchMeetingById({ commit }, id) {
+
+    /**
+     * 創建一個新會議
+     */
+    async createMeeting({ dispatch }, meetingPayload) {
         try {
-            const meetingData = await api.getMeetingById(id);
-            commit('setCurrentMeeting', meetingData);
-        } catch (error) {
-            console.error('Failed to fetch meeting in Vuex:', error.message);
-        }
-    },
-    async createMeeting({ dispatch }, meeting) {
-        try {
-            const formattedMeeting = {
-                name: meeting.name,
-                organizer: meeting.organizer,
-                startTime: meeting.startTime,
-                endTime: meeting.endTime,
-                content: meeting.content,
-                status: 'Scheduled' // 确保状态为 'Scheduled'
-            };
-            // 调用 api.createMeeting，它会返回创建成功后的数据（根据后端实现）
-            await api.createMeeting(formattedMeeting);
-            // 操作成功后重新拉取列表
-            dispatch('fetchMeetings');
+            await api.createMeeting(meetingPayload);
+            dispatch('fetchMeetings', {});
         } catch (error) {
             console.error('Failed to create meeting in Vuex:', error.message);
+            throw error;
         }
     },
-    async editMeeting({ dispatch }, meeting) {
+
+    /**
+     * 更新一個已有的會議
+     */
+    async updateMeeting({ dispatch }, meetingPayload) {
         try {
-            const { id, ...meetingData } = meeting;
-            const formattedMeeting = {
-                name: meetingData.name,
-                organizer: meetingData.organizer,
-                startTime: meetingData.startTime,
-                endTime: meetingData.endTime,
-                content: meetingData.content,
-                status: 'Scheduled' // 确保状态为 'Scheduled'
-            };
-            await api.updateMeeting(id, formattedMeeting);
-            dispatch('fetchMeetings');
+            await api.updateMeeting(meetingPayload);
+            dispatch('fetchMeetings', {});
         } catch (error) {
             console.error('Failed to update meeting in Vuex:', error.message);
+            throw error;
         }
     },
-    async deleteMeeting({ dispatch }, id) {
+
+    /**
+     * 刪除一個會議
+     */
+    async deleteMeeting({ dispatch }, meetingId) {
         try {
-            await api.deleteMeeting(id);
-            dispatch('fetchMeetings');
+            await api.deleteMeeting({ id: meetingId });
+            dispatch('fetchMeetings', {});
         } catch (error) {
-            console.error('Failed to delete meeting in Vuex:', error.message);
+            console.error(`Failed to delete meeting with id ${meetingId} in Vuex:`, error.message);
+            throw error;
+        }
+    },
+
+    /**
+     * 審批會議
+     */
+    async approveMeeting({ dispatch }, meetingId) {
+        try {
+            await api.approveMeeting({ id: meetingId });
+            dispatch('fetchMeetings', {});
+        } catch (error) {
+            console.error(`Failed to approve meeting with id ${meetingId} in Vuex:`, error.message);
+            throw error;
         }
     }
 };
 
 const getters = {
     allMeetings: state => state.meetings,
-    currentMeeting: state => state.currentMeeting
+    currentMeeting: state => state.currentMeeting,
+    isLoading: state => state.loading
 };
 
 export default {

@@ -17,9 +17,6 @@ import java.util.UUID;
 @RestController
 public class FileUploadController {
 
-    @Value("${file.upload-dir}")
-    private String uploadDir;
-
     @PostMapping("/api/upload")
     public ResponseEntity<?> uploadFile(MultipartFile file) { // 移除@RequestParam注解
         if (file == null || file.isEmpty()) {
@@ -27,8 +24,9 @@ public class FileUploadController {
         }
 
         try {
-            // 确保上传目录存在
-            Path uploadPath = Paths.get(uploadDir);
+
+            String basePath = System.getProperty("user.dir");
+            Path uploadPath = Paths.get(basePath, "src/main/resources/image");
             if (!Files.exists(uploadPath)) {
                 Files.createDirectories(uploadPath);
             }

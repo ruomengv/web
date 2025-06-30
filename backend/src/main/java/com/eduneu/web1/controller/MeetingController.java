@@ -13,7 +13,6 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.List;
@@ -26,9 +25,7 @@ public class MeetingController {
     @Autowired
     private MeetingService meetingService;
 
-    // 用于解析带时区偏移的输入格式
-    private final DateTimeFormatter offsetFormatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
-
+    // ... 其他方法保持不变 ...
     @GetMapping("/listAll")
     public ResponseEntity<List<Meeting>> listAll() {
         List<Meeting> data = meetingService.getAllMeetings();
@@ -87,11 +84,14 @@ public class MeetingController {
                 .orElse(new ResponseEntity<>("Meeting not found.", HttpStatus.NOT_FOUND));
     }
 
+
+
     @PostMapping("/searchMeetings")
     public ResponseEntity<?> searchMeetings(@RequestBody Map<String, String> params) {
         try {
             String name = params.get("name");
             String organizer = params.get("organizer");
+            String category = params.get("category"); // <-- 新增
             String startDateStr = params.get("searchStartDate");
             String endDateStr = params.get("searchEndDate");
 
@@ -102,48 +102,36 @@ public class MeetingController {
                 searchEndDateTime = searchStartDateTime.with(LocalTime.MAX);
             }
 
-            List<Meeting> meetings = meetingService.searchMeetings(name, organizer, searchStartDateTime, searchEndDateTime);
+            List<Meeting> meetings = meetingService.searchMeetings(name, organizer, category, searchStartDateTime, searchEndDateTime); // <-- 新增
             return new ResponseEntity<>(meetings, HttpStatus.OK);
 
         } catch (DateTimeParseException e) {
             return new ResponseEntity<>("Invalid date format. Use yyyy-MM-dd or yyyy-MM-dd'T'HH:mm:ss", HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
+            // 建议打印日志以供调试
+            // log.error("Error searching meetings", e);
             return new ResponseEntity<>("An internal server error occurred.", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-    /**
-     * 审批会议。
-     * @param payload 包含会议ID: {"id": 123}
-     * @param session Spring会自动注入当前的HttpSession
-     * @return 更新后的会议
-     */
+
     @PostMapping("/approve")
     public ResponseEntity<?> approveMeeting(@RequestBody Map<String, Long> payload, HttpSession session) {
         try {
-            // 在方法开头调用私有的权限检查方法
             checkAdmin(session);
-
-            // --- 权限检查通过后，才执行业务逻辑 ---
             Long id = payload.get("id");
             if (id == null) {
                 return ResponseEntity.badRequest().body("缺少会议ID");
             }
-
             Meeting approvedMeeting = meetingService.approveMeeting(id);
             return ResponseEntity.ok(approvedMeeting);
-
         } catch (ResponseStatusException e) {
-            // 捕获权限异常，返回相应的状态码和信息
             return ResponseEntity.status(e.getStatusCode()).body(e.getReason());
         } catch (RuntimeException e) {
-            // 捕获其他业务异常
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
-
-
-    //用于解析日期字符串
+    // ... 私有方法 parseToLocalDateTime 和 checkAdmin 保持不变 ...
     private LocalDateTime parseToLocalDateTime(String dateTimeStr, boolean isStart) {
         if (dateTimeStr == null || dateTimeStr.isEmpty()) {
             return null;
@@ -169,5 +157,4 @@ public class MeetingController {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "会话数据异常");
         }
     }
-
 }

@@ -16,6 +16,7 @@ public class MeetingService {
     @Autowired
     private MeetingMapper meetingMapper;
 
+    // ... 其他方法 getAllMeetings, getMeetingById, createMeeting, updateMeeting, deleteMeeting 保持不变 ...
     public List<Meeting> getAllMeetings() {
         return meetingMapper.findAll();
     }
@@ -32,7 +33,6 @@ public class MeetingService {
 
     public Meeting updateMeeting(Long id, Meeting meetingDetails) {
         validateMeeting(meetingDetails);
-        // 确认会议存在
         meetingMapper.findById(id)
                 .orElseThrow(() -> new RuntimeException("Meeting not found with id " + id));
         meetingDetails.setId(id);
@@ -65,7 +65,12 @@ public class MeetingService {
         if (meeting.getStatus() == null || meeting.getStatus().isEmpty()) {
             throw new IllegalArgumentException("状态不能为空");
         }
+        // 可选：如果 category 是必填项，可以在这里添加校验
+        // if (meeting.getCategory() == null || meeting.getCategory().isEmpty()) {
+        //     throw new IllegalArgumentException("会议类别不能为空");
+        // }
     }
+
     @Transactional
     public Meeting approveMeeting(Long meetingId) {
         Meeting meeting = meetingMapper.findById(meetingId)
@@ -79,7 +84,9 @@ public class MeetingService {
         meetingMapper.update(meeting);
         return meeting;
     }
-    public List<Meeting> searchMeetings(String name, String organizer, LocalDateTime startDate, LocalDateTime endDate) {
-        return meetingMapper.searchMeetings(name, organizer, startDate, endDate);
+
+
+    public List<Meeting> searchMeetings(String name, String organizer, String category, LocalDateTime startDate, LocalDateTime endDate) {
+        return meetingMapper.searchMeetings(name, organizer, category, startDate, endDate);
     }
 }
