@@ -91,7 +91,7 @@ export default {
     return api.put(`/user/admin/status/${uid}`, { status })
   },
 
-  // 动态相关
+  // 动态相关 (News)
   getNews(params) {
     return api.get('/news', {
       params,
@@ -140,33 +140,26 @@ export default {
     return api.put(`/admin/courses/${id}/reject`, { reason })
   },
 
-  // 会议相关
-  getAllMeetings() {
-    return api.get('/meetings/listAll');
-  },
-  getMeetingById(id) {
-    return api.post('/meetings/getMeetingById', { id });
-  },
-  createMeeting(meetingData) {
-    return api.post('/meetings/addMeeting', meetingData);
-  },
-  updateMeeting(id, meetingData) {
-    // 将 id 和 meetingData 合并为一个对象发送
-    const payload = {
-      id: id,
-      ...meetingData
-    };
-    return api.post('/meetings/updateMeeting', payload);
-  },
-  deleteMeeting(id) {
-    return api.post('/meetings/deleteMeeting', { id });
-  },
+  // --- 会议相关 (【已修正】統一接口) ---
   searchMeetings(params) {
     return api.post('/meetings/searchMeetings', params);
   },
-  approveMeeting(id) {
-    return api.post('/meetings/approve', { id });
+  getMeetingById(payload) { // 接收 { id: 1 } 這樣的物件
+    return api.post('/meetings/getMeetingById', payload);
   },
+  createMeeting(payload) { // 接收完整的 meeting 物件
+    return api.post('/meetings/addMeeting', payload);
+  },
+  updateMeeting(payload) { // 接收包含 id 的 meeting 物件
+    return api.post('/meetings/updateMeeting', payload);
+  },
+  deleteMeeting(payload) { // 接收 { id: 1 } 這樣的物件
+    return api.post('/meetings/deleteMeeting', payload);
+  },
+  approveMeeting(payload) { // 接收 { id: 1 } 這樣的物件
+    return api.post('/meetings/approve', payload);
+  },
+  // getAllMeetings() 已被 searchMeetings({}) 替代，可以移除
 
   // 文件上传
   uploadFile(file) {
