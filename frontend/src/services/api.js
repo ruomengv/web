@@ -116,6 +116,12 @@ export default {
   rejectNews(id, reason) {
     return api.put(`/admin/news/${id}/reject`, { reason })
   },
+  getCourseDetail(id) {
+    return api.get(`/courses/${id}`);
+  },
+  getNewsDetail(id) {
+    return api.get(`/news/${id}`);
+  },
 
   // 课程相关
   getCourses(params) {

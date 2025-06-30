@@ -1,5 +1,7 @@
 package com.eduneu.web1.entity;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+
 import java.util.Date;
 
 public class Course {
@@ -10,11 +12,13 @@ public class Course {
     private Integer sort;
     private String videoUrl;
     private String author;
-    private Integer status; // 0-待审核 1-已发布 2-驳回
-    private String rejectReason; // 驳回原因
+    private Integer status;
+    private String rejectReason;
     private Long creatorId;
-    private Date createTime;
-    private Date updateTime;
+
+    private Date create_time;
+    private Date update_time;
+
 
     // Getters and Setters
     public Long getId() { return id; }
@@ -37,8 +41,9 @@ public class Course {
     public void setRejectReason(String rejectReason) { this.rejectReason = rejectReason; }
     public Long getCreatorId() { return creatorId; }
     public void setCreatorId(Long creatorId) { this.creatorId = creatorId; }
-    public Date getCreateTime() { return createTime; }
-    public void setCreateTime(Date createTime) { this.createTime = createTime; }
-    public Date getUpdateTime() { return updateTime; }
-    public void setUpdateTime(Date updateTime) { this.updateTime = updateTime; }
+
+    public Date getCreateTime() { return create_time; }
+    public void setCreateTime(Date createTime) { this.create_time = createTime; }
+    public Date getUpdateTime() { return update_time; }
+    public void setUpdateTime(Date updateTime) { this.update_time = updateTime; }
 }

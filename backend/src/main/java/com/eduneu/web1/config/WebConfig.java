@@ -17,7 +17,7 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                .allowedOriginPatterns("*")
+                .allowedOriginPatterns("*") // 允许所有来源
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
                 .allowCredentials(true)
@@ -30,5 +30,7 @@ public class WebConfig implements WebMvcConfigurer {
         String absolutePath = new File(uploadDir).getAbsolutePath();
         registry.addResourceHandler("/uploads/**")
                 .addResourceLocations("file:" + absolutePath + File.separator);
+
+        // 不需要为外部URL添加特殊配置
     }
 }

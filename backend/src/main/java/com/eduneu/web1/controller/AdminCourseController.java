@@ -30,16 +30,6 @@ public class AdminCourseController {
         }
     }
 
-    // 待审核课程列表（分页版本）
-    @GetMapping("/audits")
-    public List<Course> pendingAudits(
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size,
-            HttpSession session) {
-        checkAdmin(session);
-        int offset = (page - 1) * size;
-        return courseMapper.findPendingCoursesWithPage(offset, size);
-    }
 
     // 审核通过
     @PutMapping("/{id}/approve")

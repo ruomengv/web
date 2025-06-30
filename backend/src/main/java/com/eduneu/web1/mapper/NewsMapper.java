@@ -38,15 +38,6 @@ public interface NewsMapper {
             "OR summary LIKE CONCAT('%', #{keyword}, '%')")
     int countSearchedNews(@Param("keyword") String keyword);
 
-    @Select("SELECT * FROM news WHERE creator_id=#{creatorId} " +
-            "LIMIT #{size} OFFSET #{offset}")
-    List<News> findNewsByCreator(
-            @Param("creatorId") Long creatorId,
-            @Param("offset") int offset,
-            @Param("size") int size);
-
-    @Select("SELECT COUNT(*) FROM news WHERE creator_id=#{creatorId}")
-    int countNewsByCreator(@Param("creatorId") Long creatorId);
 
     @Select("SELECT * FROM news WHERE status=0")
     List<News> findPendingNews();

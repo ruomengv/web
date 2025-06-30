@@ -8,9 +8,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/courses")
@@ -32,6 +34,8 @@ public class CourseController {
             throw new RuntimeException("用户未登录");
         }
 
+        // 修复点：设置创建时间
+        course.setCreateTime(new Date());
         // 超级管理员直接发布，企业用户需要审核
         course.setStatus(currentUser.getRole() == 0 ? 1 : 0);
         course.setCreatorId(currentUser.getUid());
@@ -48,13 +52,15 @@ public class CourseController {
         }
 
         Course existing = courseMapper.findCourseById(id);
-
         // 权限检查：超级管理员或创建者本人
         if (currentUser.getRole() != 0 && !existing.getCreatorId().equals(currentUser.getUid())) {
             throw new RuntimeException("无权限操作此课程");
         }
 
         course.setId(id);
+        // 修复点：设置更新时间
+        course.setUpdateTime(new Date());
+
         // 如果是企业用户更新，重置为待审核状态
         if (currentUser.getRole() != 0) {
             course.setStatus(0);
@@ -114,6 +120,7 @@ public class CourseController {
 
         int offset = (page - 1) * size;
         List<Course> courses = courseMapper.searchCoursesWithPage(keyword, offset, size);
+
         int total = courseMapper.countSearchedCourses(keyword);
 
         Map<String, Object> response = new HashMap<>();

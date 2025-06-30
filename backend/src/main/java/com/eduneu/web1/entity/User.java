@@ -12,11 +12,10 @@ public class User {
     private Integer gender; // 0-未知 1-男 2-女
     private Integer status; // 0-禁用 1-启用
     private Integer role;   // 0-超级管理员 1-企业用户
-    private Long companyId; //
+    private Long companyId;
     private Date createTime;
     private Date updateTime;
 
-    // Getters and Setters
     public Long getUid() { return uid; }
     public void setUid(Long uid) { this.uid = uid; }
     public String getUsername() { return username; }

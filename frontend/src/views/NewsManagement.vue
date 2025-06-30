@@ -25,7 +25,13 @@
           </div>
           
           <el-table :data="newsList" border v-loading="loading">
-            <el-table-column prop="title" label="标题" />
+            <el-table-column label="标题">
+              <template #default="{ row }">
+                <router-link :to="{ name: 'NewsDetail', params: { id: row.id } }">
+                  {{ row.title }}
+                </router-link>
+              </template>
+            </el-table-column>
             <el-table-column prop="author" label="作者" />
             <el-table-column label="封面">
               <template #default="{ row }">
@@ -78,43 +84,7 @@
           </div>
         </el-card>
       </el-tab-pane>
-      
-      <el-tab-pane label="待审核新闻" name="audit" v-if="user.role === 0">
-        <el-card v-loading="auditLoading">
-          <el-table :data="pendingNews" border>
-            <el-table-column prop="title" label="标题" />
-            <el-table-column prop="author" label="作者" />
-            <el-table-column label="封面">
-              <template #default="{ row }">
-                <el-image 
-                  :src="row.cover" 
-                  style="width: 60px; height: 40px" 
-                  fit="cover" 
-                  v-if="row.cover"
-                />
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" width="180">
-              <template #default="{ row }">
-                <el-button size="small" type="success" @click="approveNews(row.id)">通过</el-button>
-                <el-button size="small" type="warning" @click="rejectNews(row.id)">驳回</el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-          
-          <div class="pagination">
-            <el-pagination
-              v-model:current-page="auditPage"
-              v-model:page-size="pageSize"
-              :total="auditTotal"
-              :page-sizes="[5, 10, 20, 50]"
-              layout="total, sizes, prev, pager, next, jumper"
-              @current-change="fetchPendingNews"
-              @size-change="handleAuditSizeChange"
-            />
-          </div>
-        </el-card>
-      </el-tab-pane>
+
     </el-tabs>
 
     <!-- 添加/编辑新闻对话框 -->
@@ -123,23 +93,39 @@
         <el-form-item label="新闻标题" prop="title" required>
           <el-input v-model="currentNews.title" />
         </el-form-item>
+        
         <el-form-item label="封面图片" prop="cover">
-          <el-upload 
-            action="/api/upload" 
-            :show-file-list="false"
-            :before-upload="beforeCoverUpload"
-            :http-request="uploadCover"
-          >
-            <el-button type="primary">上传封面</el-button>
-            <div v-if="currentNews.cover" class="cover-preview">
-              <el-image 
-                :src="currentNews.cover" 
-                style="width: 200px; height: 120px; margin-top: 10px" 
-                fit="cover"
-              />
+          <div class="cover-options">
+            <div class="url-option">
+              <el-input 
+                v-model="coverUrl" 
+                placeholder="输入图片URL" 
+                clearable
+                @keyup.enter="setCoverFromUrl"
+              >
+                <template #append>
+                  <el-button @click="setCoverFromUrl">应用</el-button>
+                </template>
+              </el-input>
             </div>
-          </el-upload>
+            
+            
+          </div>
+          
+          <div class="cover-preview">
+            <el-image 
+              v-if="currentNews.cover"
+              :src="currentNews.cover" 
+              style="width: 200px; height: 120px; margin-top: 10px" 
+              fit="cover"
+            />
+            <div v-else class="cover-placeholder">
+              <el-icon><Picture /></el-icon>
+              <span>无封面图片</span>
+            </div>
+          </div>
         </el-form-item>
+        
         <el-form-item label="内容摘要" prop="summary" required>
           <el-input v-model="currentNews.summary" type="textarea" rows="3" />
         </el-form-item>
@@ -162,11 +148,9 @@
 import { ref, onMounted, computed } from 'vue'
 import api from '@/services/api'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Picture } from '@element-plus/icons-vue'
 
-// 获取用户信息
 const user = JSON.parse(localStorage.getItem('user') || '{}') 
-
-// 数据状态
 const newsList = ref([])
 const pendingNews = ref([])
 const currentNews = ref({})
@@ -181,26 +165,20 @@ const auditTotal = ref(0)
 const loading = ref(false)
 const auditLoading = ref(false)
 const newsForm = ref(null)
+const coverUrl = ref('')
 
-// 计算属性
 const dialogTitle = computed(() => 
   currentNews.value.id ? '编辑新闻' : '添加新闻'
 )
 
-// 生命周期钩子
 onMounted(async () => {
   await fetchNews()
-  if (user.role === 0) {
-    await fetchPendingNews()
-  }
+
 })
 
-// 获取新闻列表（修正参数处理）
 const fetchNews = async () => {
   try {
     loading.value = true
-    
-    // 确保参数合法
     const params = {
       page: Math.max(1, parseInt(currentPage.value)),
       size: Math.max(1, parseInt(pageSize.value)),
@@ -209,6 +187,7 @@ const fetchNews = async () => {
     }
 
     const res = await api.getNews(params)
+    console.log(res)
     newsList.value = res.list || []
     total.value = res.total || 0
   } catch (error) {
@@ -219,48 +198,25 @@ const fetchNews = async () => {
   }
 }
 
-// 获取待审核新闻
-const fetchPendingNews = async () => {
-  try {
-    auditLoading.value = true
-    
-    const params = {
-      page: Math.max(1, parseInt(auditPage.value)),
-      size: Math.max(1, parseInt(pageSize.value))
-    }
-    
-    const res = await api.getPendingNews(params)
-    pendingNews.value = res.list || []
-    auditTotal.value = res.total || 0
-  } catch (error) {
-    console.error('获取待审核新闻失败:', error)
-    ElMessage.error('获取待审核新闻失败')
-  } finally {
-    auditLoading.value = false
-  }
-}
 
-// 搜索新闻
+
 const searchNews = () => {
   currentPage.value = 1
   fetchNews()
 }
 
-// 分页大小变化处理
 const handleSizeChange = (newSize) => {
   pageSize.value = newSize
   currentPage.value = 1
   fetchNews()
 }
 
-// 审核分页大小变化处理
 const handleAuditSizeChange = (newSize) => {
   pageSize.value = newSize
   auditPage.value = 1
   fetchPendingNews()
 }
 
-// 状态标签样式
 const statusTagType = (status) => {
   switch (status) {
     case 0: return 'warning'
@@ -270,7 +226,6 @@ const statusTagType = (status) => {
   }
 }
 
-// 状态文本
 const statusText = (status) => {
   switch (status) {
     case 0: return '待审核'
@@ -280,14 +235,12 @@ const statusText = (status) => {
   }
 }
 
-// 格式化日期
 const formatDate = (dateStr) => {
   if (!dateStr) return ''
   const date = new Date(dateStr)
   return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`
 }
 
-// 添加新闻
 const addNews = () => {
   currentNews.value = {
     title: '',
@@ -297,16 +250,16 @@ const addNews = () => {
     author: user.nickname || user.username,
     status: user.role === 0 ? 1 : 0
   }
+  coverUrl.value = ''
   showDialog.value = true
 }
 
-// 编辑新闻
 const editNews = (news) => {
   currentNews.value = { ...news }
+  coverUrl.value = news.cover || ''
   showDialog.value = true
 }
 
-// 删除新闻
 const deleteNews = (id) => {
   ElMessageBox.confirm('确定要删除这条新闻吗？', '提示', {
     confirmButtonText: '确定',
@@ -324,7 +277,6 @@ const deleteNews = (id) => {
   }).catch(() => {})
 }
 
-// 审核通过
 const approveNews = async (id) => {
   try {
     await api.approveNews(id)
@@ -337,7 +289,6 @@ const approveNews = async (id) => {
   }
 }
 
-// 驳回新闻
 const rejectNews = async (id) => {
   try {
     await api.rejectNews(id, '内容不符合要求')
@@ -349,10 +300,8 @@ const rejectNews = async (id) => {
   }
 }
 
-// 保存新闻
 const saveNews = async () => {
   try {
-    // 验证表单
     await newsForm.value.validate()
     
     if (currentNews.value.id) {
@@ -374,54 +323,12 @@ const saveNews = async () => {
   }
 }
 
-// 封面上传前验证
-const beforeCoverUpload = (file) => {
-  const isImage = file.type.startsWith('image/')
-  const isLt5M = file.size / 1024 / 1024 < 5
-
-  if (!isImage) {
-    ElMessage.error('只能上传图片格式文件!')
-  }
-  if (!isLt5M) {
-    ElMessage.error('图片大小不能超过5MB!')
-  }
-  
-  return isImage && isLt5M
-}
-
-// 上传封面
-const uploadCover = async (options) => {
-  try {
-    const formData = new FormData()
-    formData.append('file', options.file)
-    
-    // 使用正确的URL
-    const res = await api.uploadFile(formData)
-    
-    // 处理响应
-    if (res && res.data && res.data.url) {
-      currentNews.value.cover = res.data.url
-      ElMessage.success('封面上传成功')
-    } else {
-      ElMessage.error('封面上传失败：未返回有效URL')
-    }
-  } catch (error) {
-    console.error('封面上传失败:', error)
-    
-    let errorMsg = '封面上传失败：'
-    if (error.response) {
-      if (error.response.status === 404) {
-        errorMsg += '上传接口不存在 (404)'
-      } else {
-        errorMsg += `服务器错误 (${error.response.status})`
-      }
-    } else if (error.request) {
-      errorMsg += '服务器无响应'
-    } else {
-      errorMsg += error.message || '未知错误'
-    }
-    
-    ElMessage.error(errorMsg)
+const setCoverFromUrl = () => {
+  if (coverUrl.value) {
+    currentNews.value.cover = coverUrl.value
+    ElMessage.success('封面URL已应用')
+  } else {
+    ElMessage.warning('请输入有效的图片URL')
   }
 }
 </script>
@@ -445,7 +352,40 @@ const uploadCover = async (options) => {
   justify-content: flex-end;
 }
 
+.cover-options {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 10px;
+}
+
+.url-option {
+  flex: 1;
+}
+
+.upload-option {
+  flex-shrink: 0;
+}
+
 .cover-preview {
   margin-top: 10px;
+}
+
+.cover-placeholder {
+  width: 200px;
+  height: 120px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: #f5f7fa;
+  border: 1px dashed #dcdfe6;
+  border-radius: 4px;
+  color: #909399;
+  font-size: 14px;
+}
+
+.cover-placeholder .el-icon {
+  font-size: 40px;
+  margin-bottom: 10px;
 }
 </style>

@@ -27,7 +27,13 @@
           </div>
           
           <el-table :data="courses" border stripe v-loading="loading">
-            <el-table-column prop="title" label="标题" min-width="150" />
+            <el-table-column label="标题" min-width="150">
+              <template #default="{ row }">
+                <router-link :to="{ name: 'CourseDetail', params: { id: row.id } }">
+                  {{ row.title }}
+                </router-link>
+              </template>
+            </el-table-column>
             <el-table-column prop="author" label="作者" width="120" />
             <el-table-column label="封面" width="100">
               <template #default="{ row }">
@@ -107,55 +113,7 @@
           </div>
         </el-card>
       </el-tab-pane>
-      
-      <el-tab-pane label="待审核课程" name="audit" v-if="user.role === 0">
-        <el-card>
-          <el-table :data="pendingCourses" border stripe v-loading="auditLoading">
-            <el-table-column prop="title" label="标题" min-width="150" />
-            <el-table-column prop="author" label="作者" width="120" />
-            <el-table-column label="封面" width="100">
-              <template #default="{ row }">
-                <el-image 
-                  :src="row.cover" 
-                  style="width: 60px; height: 40px" 
-                  fit="cover"
-                  :preview-src-list="[row.cover]"
-                  v-if="row.cover"
-                >
-                  <template #error>
-                    <div class="image-error">
-                      <el-icon><Picture /></el-icon>
-                    </div>
-                  </template>
-                </el-image>
-              </template>
-            </el-table-column>
-            <el-table-column label="创建时间" width="180">
-              <template #default="{ row }">
-                {{ formatDate(row.createTime) }}
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" width="180" fixed="right">
-              <template #default="{ row }">
-                <el-button size="small" type="success" @click="approveCourse(row.id)">通过</el-button>
-                <el-button size="small" type="warning" @click="openRejectDialog(row.id)">驳回</el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-          
-          <div class="pagination">
-            <el-pagination
-              v-model:current-page="auditPage"
-              v-model:page-size="pageSize"
-              :total="auditTotal"
-              :page-sizes="[5, 10, 20, 50]"
-              layout="total, sizes, prev, pager, next, jumper"
-              @current-change="fetchPendingCourses"
-              @size-change="handleAuditSizeChange"
-            />
-          </div>
-        </el-card>
-      </el-tab-pane>
+
     </el-tabs>
 
     <!-- 添加/编辑课程对话框 -->
@@ -164,27 +122,39 @@
         <el-form-item label="课程标题" prop="title" required>
           <el-input v-model="currentCourse.title" />
         </el-form-item>
+        
         <el-form-item label="封面图片" prop="cover">
-          <el-upload 
-            :http-request="uploadCover"
-            :show-file-list="false"
-            :before-upload="beforeCoverUpload"
-          >
-            <el-button type="primary">上传封面</el-button>
-            <div class="cover-preview">
-              <el-image 
-                v-if="currentCourse.cover"
-                :src="currentCourse.cover" 
-                style="width: 200px; height: 120px; margin-top: 10px" 
-                fit="cover"
-              />
-              <div v-else class="cover-placeholder">
-                <el-icon><Picture /></el-icon>
-                <span>点击上传封面</span>
-              </div>
+          <div class="cover-options">
+            <div class="url-option">
+              <el-input 
+                v-model="coverUrl" 
+                placeholder="输入图片URL" 
+                clearable
+                @keyup.enter="setCoverFromUrl"
+              >
+                <template #append>
+                  <el-button @click="setCoverFromUrl">应用</el-button>
+                </template>
+              </el-input>
             </div>
-          </el-upload>
+            
+         
+          </div>
+          
+          <div class="cover-preview">
+            <el-image 
+              v-if="currentCourse.cover"
+              :src="currentCourse.cover" 
+              style="width: 200px; height: 120px; margin-top: 10px" 
+              fit="cover"
+            />
+            <div v-else class="cover-placeholder">
+              <el-icon><Picture /></el-icon>
+              <span>无封面图片</span>
+            </div>
+          </div>
         </el-form-item>
+        
         <el-form-item label="课程简介" prop="summary" required>
           <el-input v-model="currentCourse.summary" type="textarea" rows="3" />
         </el-form-item>
@@ -227,14 +197,13 @@
     </el-dialog>
   </div>
 </template>
-
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import api from '@/services/api'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Picture } from '@element-plus/icons-vue'
 
-const user = JSON.parse(localStorage.getItem('user') || {})
+const user = JSON.parse(localStorage.getItem('user') || '{}')
 const courses = ref([])
 const pendingCourses = ref([])
 const currentCourse = ref({})
@@ -252,6 +221,7 @@ const courseForm = ref(null)
 const rejectDialogVisible = ref(false)
 const rejectForm = ref({ reason: '' })
 const rejectingCourseId = ref(null)
+const coverUrl = ref('')
 
 const dialogTitle = computed(() => 
   currentCourse.value.id ? '编辑课程' : '添加课程'
@@ -259,9 +229,6 @@ const dialogTitle = computed(() =>
 
 onMounted(async () => {
   await fetchCourses()
-  if (user.role === 0) {
-    await fetchPendingCourses()
-  }
 })
 
 const fetchCourses = async () => {
@@ -277,7 +244,6 @@ const fetchCourses = async () => {
     courses.value = res.list || []
     total.value = res.total || 0
     
-    // 处理分页边界情况
     if (courses.value.length === 0 && total.value > 0 && currentPage.value > 1) {
       currentPage.value = Math.max(1, Math.ceil(total.value / pageSize.value))
       await fetchCourses()
@@ -290,22 +256,6 @@ const fetchCourses = async () => {
   }
 }
 
-const fetchPendingCourses = async () => {
-  try {
-    auditLoading.value = true
-    const res = await api.getPendingCourses({
-      page: auditPage.value,
-      size: pageSize.value
-    })
-    pendingCourses.value = res.list || []
-    auditTotal.value = res.total || 0
-  } catch (error) {
-    console.error('获取待审核课程失败:', error)
-    ElMessage.error(`获取待审核课程失败: ${error.message || '服务器错误'}`)
-  } finally {
-    auditLoading.value = false
-  }
-}
 
 const searchCourses = () => {
   currentPage.value = 1
@@ -318,11 +268,6 @@ const handleSizeChange = (newSize) => {
   fetchCourses()
 }
 
-const handleAuditSizeChange = (newSize) => {
-  pageSize.value = newSize
-  auditPage.value = 1
-  fetchPendingCourses()
-}
 
 const statusTagType = (status) => {
   switch (status) {
@@ -359,11 +304,13 @@ const addCourse = () => {
     status: user.role === 0 ? 1 : 0,
     creatorId: user.uid
   }
+  coverUrl.value = ''
   showDialog.value = true
 }
 
 const editCourse = (course) => {
   currentCourse.value = { ...course }
+  coverUrl.value = course.cover || ''
   showDialog.value = true
 }
 
@@ -397,11 +344,6 @@ const approveCourse = async (id) => {
   }
 }
 
-const openRejectDialog = (id) => {
-  rejectingCourseId.value = id
-  rejectForm.value.reason = ''
-  rejectDialogVisible.value = true
-}
 
 const rejectCourse = async () => {
   if (!rejectForm.value.reason.trim()) {
@@ -443,35 +385,12 @@ const saveCourse = async () => {
   }
 }
 
-const beforeCoverUpload = (file) => {
-  const isImage = file.type.startsWith('image/')
-  const isLt5M = file.size / 1024 / 1024 < 5
-
-  if (!isImage) {
-    ElMessage.error('只能上传图片格式文件!')
-  }
-  if (!isLt5M) {
-    ElMessage.error('图片大小不能超过5MB!')
-  }
-  
-  return isImage && isLt5M
-}
-
-const uploadCover = async (options) => {
-  try {
-    const formData = new FormData()
-    formData.append('file', options.file)
-    
-    const res = await api.uploadFile(options.file)
-    if (res && res.url) {
-      currentCourse.value.cover = res.url
-      ElMessage.success('封面上传成功')
-    } else {
-      ElMessage.error('封面上传失败')
-    }
-  } catch (error) {
-    console.error('封面上传失败:', error)
-    ElMessage.error('封面上传失败: ' + (error.message || '未知错误'))
+const setCoverFromUrl = () => {
+  if (coverUrl.value) {
+    currentCourse.value.cover = coverUrl.value
+    ElMessage.success('封面URL已应用')
+  } else {
+    ElMessage.warning('请输入有效的图片URL')
   }
 }
 </script>
@@ -495,6 +414,20 @@ const uploadCover = async (options) => {
   justify-content: flex-end;
 }
 
+.cover-options {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 10px;
+}
+
+.url-option {
+  flex: 1;
+}
+
+.upload-option {
+  flex-shrink: 0;
+}
+
 .cover-preview {
   margin-top: 10px;
 }
@@ -511,8 +444,6 @@ const uploadCover = async (options) => {
   border-radius: 4px;
   color: #909399;
   font-size: 14px;
-  cursor: pointer;
-  margin-top: 10px;
 }
 
 .cover-placeholder .el-icon {
