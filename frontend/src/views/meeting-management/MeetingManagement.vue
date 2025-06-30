@@ -48,8 +48,21 @@
             审批通过
           </el-button>
 
-          <el-button @click="editMeeting(scope.row.id)" type="primary" link>修改</el-button>
-          <el-button @click="confirmDelete(scope.row.id)" type="danger" link>删除</el-button>
+          <el-button
+              v-if="isAdmin || currentUsername === scope.row.organizer"
+              @click="editMeeting(scope.row.id)"
+              type="primary"
+              link>
+            修改
+          </el-button>
+
+          <el-button
+              v-if="isAdmin || currentUsername === scope.row.organizer"
+              @click="confirmDelete(scope.row.id)"
+              type="danger"
+              link>
+            删除
+          </el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -78,9 +91,18 @@ export default {
       if (!userJson) return false;
       const user = JSON.parse(userJson);
       return user && user.role === 0;
+    },
+    // --- 【新增计算属性】 ---
+    // 获取当前登录用户的用户名
+    currentUsername() {
+      const userJson = localStorage.getItem('user');
+      if (!userJson) return null; // 如果未登录，返回 null
+      const user = JSON.parse(userJson);
+      return user ? user.username : null;
     }
   },
   methods: {
+    // ... methods 内容保持不变 ...
     async fetchMeetings(params = {}) {
       this.loading = true;
       try {
@@ -193,6 +215,7 @@ export default {
 </script>
 
 <style scoped>
+/* ... 样式保持不变 ... */
 .meeting-management {
   padding: 20px;
 }

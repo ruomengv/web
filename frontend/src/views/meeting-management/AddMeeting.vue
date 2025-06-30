@@ -1,15 +1,13 @@
 <template>
   <el-form :model="meeting" label-width="120px" @submit.native.prevent="submitForm">
-    <el-form-item label="会议名称">
+    <el-form-item label="会议名称" required>
       <el-input v-model="meeting.name"></el-input>
     </el-form-item>
-    <el-form-item label="创建人">
-      <el-input v-model="meeting.organizer"></el-input>
-    </el-form-item>
-    <el-form-item label="开始时间">
+
+    <el-form-item label="开始时间" required>
       <el-date-picker v-model="meeting.startTime" type="datetime" placeholder="选择时间"></el-date-picker>
     </el-form-item>
-    <el-form-item label="结束时间">
+    <el-form-item label="结束时间" required>
       <el-date-picker v-model="meeting.endTime" type="datetime" placeholder="选择时间"></el-date-picker>
     </el-form-item>
     <el-form-item label="会议内容">
@@ -31,6 +29,7 @@ export default {
     return {
       meeting: {
         name: '',
+        // organizer 字段仍然保留，但不再需要用户手动输入
         organizer: '',
         startTime: '',
         endTime: '',
@@ -41,15 +40,36 @@ export default {
   },
   methods: {
     async submitForm() {
+      // --- 新增逻辑 ---
+      // 1. 从 localStorage 获取用户信息
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+      // 2. 检查用户是否存在以及用户名是否有效
+      if (!user || !user.username) {
+        this.$message.error('无法获取当前用户信息，请重新登录');
+        return; // 中断提交
+      }
+
+      // 3. 将当前用户名赋值给 meeting.organizer
+      this.meeting.organizer = user.username;
+      // --- 逻辑结束 ---
+
       try {
-        // 直接调用 api
+        // 验证其他必填项
+        if (!this.meeting.name || !this.meeting.startTime || !this.meeting.endTime) {
+          this.$message.warning('请填写所有必填项');
+          return;
+        }
+
+        // 使用更新后的 this.meeting 对象调用 api
         await api.createMeeting(this.meeting);
         this.$message.success('会议创建成功');
+
         // 跳转回列表页
         this.$router.push({ name: 'MeetingList' });
       } catch (error) {
         console.error('Failed to create meeting:', error);
-        this.$message.error('创建会议失败');
+        this.$message.error('创建会议失败: ' + (error.response?.data?.message || '未知错误'));
       }
     },
     cancel() {
@@ -58,3 +78,7 @@ export default {
   }
 };
 </script>
+
+<style scoped>
+/* 样式可以根据需要添加 */
+</style>
