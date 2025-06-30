@@ -43,9 +43,6 @@ export default {
 
   methods: {
     fetchMeetingDetails() {
-      // 【追蹤點 7】
-      console.log("【追蹤點 7】: fetchMeetingDetails - 方法開始執行");
-
       const meetingId = this.$route.params.id;
       if (!meetingId) {
         this.$message.error('未提供有效的会议ID');

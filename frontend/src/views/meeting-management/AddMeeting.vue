@@ -4,6 +4,15 @@
       <el-input v-model="meeting.name"></el-input>
     </el-form-item>
 
+    <el-form-item label="会议类别">
+      <el-select v-model="meeting.category" placeholder="请选择会议类别" clearable>
+        <el-option label="技术分享" value="技术分享"></el-option>
+        <el-option label="项目周会" value="项目周会"></el-option>
+        <el-option label="部门例会" value="部门例会"></el-option>
+        <el-option label="客户沟通" value="客户沟通"></el-option>
+      </el-select>
+    </el-form-item>
+
     <el-form-item label="开始时间" required>
       <el-date-picker v-model="meeting.startTime" type="datetime" placeholder="选择时间"></el-date-picker>
     </el-form-item>
@@ -29,30 +38,28 @@ export default {
     return {
       meeting: {
         name: '',
-        // organizer 字段仍然保留，但不再需要用户手动输入
         organizer: '',
         startTime: '',
         endTime: '',
         content: '',
-        status: 'planned'
+        status: 'planned',
+        category: '' // 新增 category 字段
       }
     };
   },
   methods: {
     async submitForm() {
-      // --- 新增逻辑 ---
-      // 1. 从 localStorage 获取用户信息
+      // 从 localStorage 获取用户信息
       const user = JSON.parse(localStorage.getItem('user') || '{}');
 
-      // 2. 检查用户是否存在以及用户名是否有效
+      // 检查用户是否存在以及用户名是否有效
       if (!user || !user.username) {
         this.$message.error('无法获取当前用户信息，请重新登录');
         return; // 中断提交
       }
 
-      // 3. 将当前用户名赋值给 meeting.organizer
+      // 将当前用户名赋值给 meeting.organizer
       this.meeting.organizer = user.username;
-      // --- 逻辑结束 ---
 
       try {
         // 验证其他必填项
@@ -80,5 +87,5 @@ export default {
 </script>
 
 <style scoped>
-/* 样式可以根据需要添加 */
+
 </style>
