@@ -114,7 +114,7 @@ public class MeetingController {
         }
     }
 
-    @PostMapping("/approveMeeting")
+    @PostMapping("/approve")
     public ResponseEntity<?> approveMeeting(@RequestBody Map<String, Long> payload, HttpSession session) {
         try {
             checkAdmin(session);
@@ -132,7 +132,7 @@ public class MeetingController {
     }
 
     // ... 私有方法 parseToLocalDateTime 和 checkAdmin 保持不变 ...
-    public LocalDateTime parseToLocalDateTime(String dateTimeStr, boolean isStart) {
+    private LocalDateTime parseToLocalDateTime(String dateTimeStr, boolean isStart) {
         if (dateTimeStr == null || dateTimeStr.isEmpty()) {
             return null;
         }

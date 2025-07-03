@@ -123,7 +123,7 @@ public class NewsController {
     }
 
     // 分页结果封装类
-    public static class PageResult<T> {
+    static class PageResult<T> {
         private int total;
         private List<T> list;
 
