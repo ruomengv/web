@@ -1,6 +1,5 @@
-package com.eduneu.web1;
+package com.eduneu.web1.controller;
 
-import com.eduneu.web1.controller.NewsController;
 import com.eduneu.web1.entity.News;
 import com.eduneu.web1.entity.User;
 import com.eduneu.web1.mapper.NewsMapper;

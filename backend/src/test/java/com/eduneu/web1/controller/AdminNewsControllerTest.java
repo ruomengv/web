@@ -1,6 +1,5 @@
-package com.eduneu.web1;
+package com.eduneu.web1.controller;
 
-import com.eduneu.web1.controller.AdminNewsController;
 import com.eduneu.web1.dto.AuditDTO;
 import com.eduneu.web1.entity.News;
 import com.eduneu.web1.entity.User;

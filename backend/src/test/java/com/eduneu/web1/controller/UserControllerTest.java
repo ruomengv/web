@@ -1,6 +1,5 @@
-package com.eduneu.web1;
+package com.eduneu.web1.controller;
 
-import com.eduneu.web1.controller.UserController;
 import com.eduneu.web1.dto.PasswordDTO;
 import com.eduneu.web1.entity.User;
 import com.eduneu.web1.mapper.UserMapper;
@@ -10,12 +9,9 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.mock.web.MockHttpSession;
 
 import java.util.*;
 

@@ -1,6 +1,5 @@
-package com.eduneu.web1;
+package com.eduneu.web1.controller;
 
-import com.eduneu.web1.controller.AuthController;
 import com.eduneu.web1.dto.CompanyRegDTO;
 import com.eduneu.web1.entity.Company;
 import com.eduneu.web1.entity.User;

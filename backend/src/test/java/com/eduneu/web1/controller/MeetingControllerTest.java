@@ -1,6 +1,5 @@
-package com.eduneu.web1;
+package com.eduneu.web1.controller;
 
-import com.eduneu.web1.controller.MeetingController;
 import com.eduneu.web1.entity.Meeting;
 import com.eduneu.web1.service.MeetingService;
 import org.junit.jupiter.api.BeforeEach;

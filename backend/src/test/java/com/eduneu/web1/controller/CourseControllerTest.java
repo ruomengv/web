@@ -1,6 +1,5 @@
-package com.eduneu.web1;
+package com.eduneu.web1.controller;
 
-import com.eduneu.web1.controller.CourseController;
 import com.eduneu.web1.entity.Course;
 import com.eduneu.web1.entity.User;
 import com.eduneu.web1.mapper.CourseMapper;
