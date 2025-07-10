@@ -16,22 +16,6 @@ public class User {
     private Date createTime;
     private Date updateTime;
 
-    // 修改构造函数，正确初始化字段
-    public User(long uid, String username, String password, int role) {
-        this.uid = uid;
-        this.username = username;
-        this.password = password;
-        this.role = role;
-    }
-
-    public User() {
-        // 默认构造函数保持不变
-    }
-
-    public User(long l, String user1, String password, String mail, String number, int i, Date date, Date date1) {
-    }
-
-    // Getter 和 Setter 方法保持不变
     public Long getUid() { return uid; }
     public void setUid(Long uid) { this.uid = uid; }
     public String getUsername() { return username; }
@@ -56,12 +40,4 @@ public class User {
     public void setCreateTime(Date createTime) { this.createTime = createTime; }
     public Date getUpdateTime() { return updateTime; }
     public void setUpdateTime(Date updateTime) { this.updateTime = updateTime; }
-
-    public void setId(long l) {
-    }
-
-    public void setUserId(long l) {
-    }
-
-
 }

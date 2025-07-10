@@ -320,28 +320,22 @@ const deleteCourse = (id) => {
     cancelButtonText: '取消',
     type: 'warning'
   }).then(async () => {
-    try {
+
       await api.deleteCourse(id)
       ElMessage.success('删除成功')
       await fetchCourses()
       if (user.role === 0) await fetchPendingCourses()
-    } catch (error) {
-      console.error('删除课程失败:', error)
-      ElMessage.error('删除失败: ' + (error.message || '未知错误'))
-    }
+
   }).catch(() => {})
 }
 
 const approveCourse = async (id) => {
-  try {
+
     await api.approveCourse(id)
     ElMessage.success('审核通过')
     await fetchCourses()
     await fetchPendingCourses()
-  } catch (error) {
-    console.error('审核操作失败:', error)
-    ElMessage.error('审核失败: ' + (error.message || '未知错误'))
-  }
+
 }
 
 

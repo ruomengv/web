@@ -278,15 +278,11 @@ const deleteNews = (id) => {
 }
 
 const approveNews = async (id) => {
-  try {
     await api.approveNews(id)
     ElMessage.success('审核通过')
     await fetchNews()
     await fetchPendingNews()
-  } catch (error) {
-    console.error('审核操作失败:', error)
-    ElMessage.error('审核失败')
-  }
+
 }
 
 const rejectNews = async (id) => {
