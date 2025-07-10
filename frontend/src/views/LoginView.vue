@@ -93,19 +93,6 @@
         <el-form-item label="确认密码" prop="confirmPassword">
           <input v-model="regForm.confirmPassword" type="password" show-password />
         </el-form-item>
-        <el-form-item label="验证码" prop="captcha">
-          <div class="captcha-container">
-            <input v-model="regForm.captcha" placeholder="请输入验证码" />
-            <el-button
-              type="primary"
-              class="captcha-btn"
-              @click="getCaptcha"
-              :disabled="captchaCooldown > 0"
-            >
-              {{ captchaCooldown > 0 ? `${captchaCooldown}秒后重试` : '获取验证码' }}
-            </el-button>
-          </div>
-        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="showRegister = false">取消</el-button>

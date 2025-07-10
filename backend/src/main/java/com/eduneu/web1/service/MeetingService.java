@@ -16,7 +16,7 @@ public class MeetingService {
     @Autowired
     private MeetingMapper meetingMapper;
 
-    // ... 其他方法 getAllMeetings, getMeetingById, createMeeting, updateMeeting, deleteMeeting 保持不变 ...
+
     public List<Meeting> getAllMeetings() {
         return meetingMapper.findAll();
     }
